@@ -466,6 +466,7 @@ function nav(cur){
   var T=[['home',ico('home'),'Home'],['diag',ico('diag'),'Diagnostic'],['papers',ico('papers'),'Papers'],['skills',ico('skills'),'Skills'],['mistakes',ico('mistakes'),'Mistakes'],['progress',ico('progress'),'Progress'],['account',avatar(26),'Me']];
   if(ROLE==='tutor')T[3]=['teacher',ico('kids'),'Kids'];
   return '<nav class="nav"><div class="nbrand">'+badgeImg(28)+'<span>Listening Coach</span></div>'+T.map(function(t){return (t[0]==='account'?'<i class="nsep"></i>':'')+'<button data-act="tab" data-v="'+t[0]+'"'+(t[0]===cur?' class="on"':'')+'><span class="ic">'+t[1]+'</span><span>'+t[2]+'</span></button>'}).join('')+'</nav>'}
+var DEVMODE=(function(){try{if(/[?&]dev=1/.test(location.search))localStorage.setItem('al1.dev','1');if(/[?&]dev=0/.test(location.search))localStorage.removeItem('al1.dev');return !!localStorage.getItem('al1.dev')}catch(e){return false}})();
 var MIN_Q=5;
 function skillLevel(st){
   if(!st.n)return{label:'Not assessed',cls:'na',rank:3};
@@ -518,7 +519,7 @@ function vProgress(){
   h+='<div class="card"><h3>'+sk+' day'+(sk===1?'':'s')+' in a row</h3><p class="muted small">'+n+' practice day'+(n===1?'':'s')+' in total. Last 5 weeks (today is outlined):</p><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:380px">'+cal+'</div></div>';
   var rows=PAPERS.filter(function(p){return bestScore(p.id)!==null});
   h+='<div class="card"><h3>Paper scores</h3>'+(rows.length?rows.map(function(p){var b=bestScore(p.id),lst=ST.exams.filter(function(e){return e.paper===p.id}).map(function(e){return e.score}).join(' → ');return '<div class="row" style="justify-content:space-between"><b>'+esc(p.short)+'</b><span class="small">'+lst+' <span class="pill good">best '+b+'/'+p.qs.length+'</span></span></div>'}).join(''):'<p class="muted">No full paper finished yet.</p>')+'</div>';
-  h+='<div class="card"><h3>Share progress with your tutor</h3><p class="muted small">Press the button, then paste the text to your tutor. It only contains scores and question numbers.</p><textarea id="prog" readonly rows="6" style="width:100%;font:13px/1.4 monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--bg);color:var(--ink)">'+esc(progText())+'</textarea><div class="row"><button class="btn sm" data-act="copyprog">Copy progress</button></div></div>';
+  if(DEVMODE)h+='<div class="card"><h3>Share progress with your tutor (dev only)</h3><p class="muted small">Press the button, then paste the text to your tutor. It only contains scores and question numbers.</p><textarea id="prog" readonly rows="6" style="width:100%;font:13px/1.4 monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--bg);color:var(--ink)">'+esc(progText())+'</textarea><div class="row"><button class="btn sm" data-act="copyprog">Copy progress</button></div></div>';
   return h+nav('progress')}
 
 /* ---------- teacher ---------- */
