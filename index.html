@@ -239,7 +239,7 @@ async function doAuth(mode){
   if(ph.length<8||ph.length>15)return authMsg('Please type your phone number (digits only, 8 or more).',true);
   if(pw.length<6)return authMsg('Your password needs at least 6 characters.',true);
   if(!SB)return authMsg('Cannot reach the server. Check the internet and refresh.',true);
-  var email='u'+ph+'@al1-listening.app';
+  var email='u'+ph+'@leximind.com.sg';
   document.querySelectorAll('[data-act=login],[data-act=signup]').forEach(function(b){b.disabled=true});
   authMsg('Please wait…');
   try{
@@ -308,7 +308,7 @@ function feedbackHtml(q,sel){
 function bestScore(pid){var b=null;ST.exams.forEach(function(e){if(e.paper===pid&&(b===null||e.score>b))b=e.score});return b}
 function progText(){
   var L=['AL1 Listening Coach progress, '+today(),'Days practised: '+Object.keys(ST.days).filter(function(d){return ST.days[d]}).sort().join(', ')+' (streak '+streak()+')'];
-  L.push('Full papers: '+(ST.exams.length?ST.exams.map(function(e){return e.paper+' '+e.score+'/20 on '+(e.date||'?')}).join('; '):'none yet'));
+  L.push('Full papers: '+(ST.exams.length?ST.exams.map(function(e){return e.paper+' '+e.score+'/'+(paperById(e.paper)?paperById(e.paper).qs.length:20)+' on '+(e.date||'?')}).join('; '):'none yet'));
   L.push('By trap type (right/attempts):');
   TYPEKEYS.forEach(function(t){var st=typeStat(t);L.push('  '+TYPES[t].label+': '+st.r+'/'+st.n+(st.n?' ('+Math.round(st.r/st.n*100)+'%)':''))});
   var ids=Object.keys(ST.q).filter(function(id){return QBY[id]&&ST.q[id].w>0}).sort(function(a,b){return ST.q[b].w-ST.q[a].w});
