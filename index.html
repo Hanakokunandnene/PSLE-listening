@@ -173,7 +173,8 @@ try{if(window.supabase)SB=window.supabase.createClient(SB_URL,SB_KEY,{auth:{pers
 function qkey(){return 'al1.queue.v1.'+(USER?USER.id:'anon')}
 function qload(){try{QUEUE=JSON.parse(localStorage.getItem(qkey())||'[]')}catch(e){QUEUE=[]}}
 function qsave(){try{localStorage.setItem(qkey(),JSON.stringify(QUEUE))}catch(e){}}
-function syncBadge(){if(!USER)return '';var t=syncState==='ok'?'Saved ✓':syncState==='busy'?'Saving…':syncState==='err'?'Not saved yet – will retry':'';return '<span class="small muted" id="syncst">'+t+'</span>'}
+var LASTERR='';function errTxt(e){try{return String((e&&(e.message||e.code||e.details))||e).slice(0,140)}catch(x){return 'error'}}
+function syncBadge(){if(!USER)return '';var t=syncState==='ok'?'Saved ✓':syncState==='busy'?'Saving…':syncState==='err'?'Not saved yet – will retry'+(LASTERR?' ['+LASTERR+']':''):'';return '<span class="small muted" id="syncst">'+t+'</span>'}
 function setSync(s){syncState=s;var el=document.getElementById('syncst');if(el)el.textContent=(syncBadge().replace(/<[^>]+>/g,''))}
 function enqueue(it){if(!USER)return;QUEUE.push(it);qsave();flush()}
 function syncAttempt(id,ok,chosen,mode){var q=QBY[id];if(!USER||!q||!DBP[q.paper])return;
@@ -203,7 +204,7 @@ function flush(){return new Promise(function(resolve){
           if(code==='23503'||code==='23514'||code==='22P02'||code==='23505'){/* bad row: drop it so it cannot block the rest */}
           else throw r.error}
         QUEUE=QUEUE.filter(function(x){return items.indexOf(x)<0});qsave()}
-    }catch(e){okAll=false}
+    }catch(e){okAll=false;LASTERR=errTxt(e)}
     flushing=false;
     if(okAll){setSync('ok');if(QUEUE.length)flush()}
     else{setSync('err');clearTimeout(retryT);retryT=setTimeout(flush,15000)}
@@ -230,7 +231,7 @@ async function onLogin(user){
   USER=user;KEY='al1.listening.v2.'+user.id;ST=loadLocal(KEY);qload();
   app.innerHTML='<p class="muted">Loading your records…</p>';
   var ok=await flush();
-  if(ok){try{await pullServer()}catch(e){setSync('err')}}
+  if(ok){try{await pullServer()}catch(e){LASTERR='load: '+errTxt(e);setSync('err')}}
   go('home')}
 async function doLogout(){try{await SB.auth.signOut()}catch(e){}USER=null;QUEUE=[];ST={q:{},exams:[],rate:1,days:{}};KEY='al1.listening.v2.anon';go('login')}
 function authMsg(t,bad){var el=document.getElementById('authmsg');if(el){el.textContent=t;el.className='small '+(bad?'':'muted');el.style.color=bad?'var(--bad)':''}}
