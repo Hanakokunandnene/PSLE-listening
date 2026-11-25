@@ -97,6 +97,20 @@ hr{border:0;border-top:1px solid var(--line);width:100%}
 .nbrand,.pgtitle,.only-d,.nsep{display:none}
 .nav{left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));border:1px solid var(--line);border-radius:24px;padding:4px}
 body{padding-bottom:104px}
+.ptitle{margin:0 0 14px}
+.pstats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.pst{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:2px}
+.pst span{font-size:12px;color:var(--muted)}.pst b{font-size:24px;color:var(--accent);font-family:var(--display)}
+.pmain{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);margin-bottom:12px}
+.pcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}.pcard h3{margin:0 0 10px}
+.pskills{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.psk{border-radius:10px;padding:8px 10px;display:grid;gap:1px;background:var(--accent-soft)}
+.psk small{font-size:11px;color:var(--muted)}.psk b{font-size:13px;color:var(--accent)}.psk em{font-style:normal;font-size:11px;color:var(--muted)}
+.psk.ok{background:#e6f3ec}.psk.ok b{color:#1f7a4d}.psk.low{background:#fff1dc}.psk.low b{color:#b36200}.psk.na{background:#f1f0f6}.psk.na b{color:var(--muted)}.psk.ins{background:#f1f0f6}.psk.ins b{color:#7a5cc4}
+.pfocus{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff4df;border:1px solid #f3e2bd;border-radius:16px;padding:14px 18px;margin-bottom:12px}
+.pfocus div{display:grid;gap:2px}.pfocus small{font-size:11px;color:#a8782a;letter-spacing:.04em}.pfocus b{font-size:18px;color:var(--ink)}.pfocus em{font-style:normal;font-size:12px;color:var(--muted)}
+@media(min-width:900px){.pmain{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media(max-width:520px){.pfocus{flex-direction:column;align-items:flex-start}}
 .hgrid{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
 .hside{display:flex;flex-direction:column;gap:18px}.hside .weekcard{display:none}
 .hero{position:relative;overflow:hidden;background:var(--accent-soft);border-color:#ddd6fb}
@@ -446,19 +460,62 @@ function avId(){try{return localStorage.getItem('al1.avatar.'+(USER?USER.id:''))
 function avatar(sz){return avHtml(avId(),sz)}
 function avHtml(v,sz){sz=sz||24;var m=/^a(\d+)$/.exec(v);if(m&&AVPIC[m[1]-1])return '<img src="'+AVPIC[m[1]-1]+'" alt="" style="width:'+sz+'px;height:'+sz+'px;object-fit:contain;display:block">';return '<span style="font-size:'+Math.round(sz*.9)+'px;line-height:1">'+(v||'🙂')+'</span>'}
 
-var IC={home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>',papers:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/>',skills:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',mistakes:'<path d="M6 3.5h12v17H6z"/><path d="M6 8h-2M6 12h-2M6 16h-2"/><path d="M10 8h5M10 12h5"/>',progress:'<path d="M3 20h18"/><path d="M4 15l5-5 4 3 7-8"/><path d="M15 5h5v5"/>',kids:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-4 3-6 6.5-6s6 2 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.2c2.5.2 4 1.8 4.5 5.3"/>',head:'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',stack:'<path d="M12 3 3 8l9 5 9-5z"/><path d="M3 12.5l9 5 9-5"/>',clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',bars:'<path d="M5 19v-5M12 19V9M19 19V5"/>',lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'};
+var IC={home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/>',papers:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/>',skills:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',mistakes:'<path d="M6 3.5h12v17H6z"/><path d="M6 8h-2M6 12h-2M6 16h-2"/><path d="M10 8h5M10 12h5"/>',diag:'<path d="M4 12h4l2-5 4 10 2-5h4"/>',progress:'<path d="M3 20h18"/><path d="M4 15l5-5 4 3 7-8"/><path d="M15 5h5v5"/>',kids:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-4 3-6 6.5-6s6 2 6.5 6"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.2c2.5.2 4 1.8 4.5 5.3"/>',head:'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>',stack:'<path d="M12 3 3 8l9 5 9-5z"/><path d="M3 12.5l9 5 9-5"/>',clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',bars:'<path d="M5 19v-5M12 19V9M19 19V5"/>',lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'};
 function ico(n,sz){sz=sz||22;return '<svg width="'+sz+'" height="'+sz+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>'}
 function nav(cur){
-  var T=[['home',ico('home'),'Home'],['papers',ico('papers'),'Papers'],['skills',ico('skills'),'Skills'],['mistakes',ico('mistakes'),'Mistakes'],['progress',ico('progress'),'Progress'],['account',avatar(26),'Me']];
+  var T=[['home',ico('home'),'Home'],['diag',ico('diag'),'Diagnostic'],['papers',ico('papers'),'Papers'],['skills',ico('skills'),'Skills'],['mistakes',ico('mistakes'),'Mistakes'],['progress',ico('progress'),'Progress'],['account',avatar(26),'Me']];
   if(ROLE==='tutor')T[3]=['teacher',ico('kids'),'Kids'];
   return '<nav class="nav"><div class="nbrand">'+badgeImg(28)+'<span>Listening Coach</span></div>'+T.map(function(t){return (t[0]==='account'?'<i class="nsep"></i>':'')+'<button data-act="tab" data-v="'+t[0]+'"'+(t[0]===cur?' class="on"':'')+'><span class="ic">'+t[1]+'</span><span>'+t[2]+'</span></button>'}).join('')+'</nav>'}
+var MIN_Q=5;
+function skillLevel(st){
+  if(!st.n)return{label:'Not assessed',cls:'na',rank:3};
+  if(st.n<MIN_Q)return{label:'Insufficient data',cls:'ins',rank:2};
+  var p=st.r/st.n;
+  if(p>=.8)return{label:'Mastered',cls:'ok',rank:5};
+  if(p>=.6)return{label:'Developing',cls:'dev',rank:1};
+  return{label:'Needs work',cls:'low',rank:0}}
+function focusSkill(SK){
+  var w=SK.filter(function(x){return x.st.n>=MIN_Q&&x.st.r/x.st.n<.8}).sort(function(a,b){return a.acc-b.acc});
+  if(w.length)return{t:w[0].t,why:'Lowest accuracy so far ('+w[0].acc+'%). Targeted practice for your weakest skill.'};
+  var i=SK.filter(function(x){return x.st.n&&x.st.n<MIN_Q});
+  if(i.length)return{t:i[0].t,why:'Only '+i[0].st.n+' question'+(i[0].st.n>1?'s':'')+' answered. Practise more to see if this skill is secure.'};
+  var u=SK.filter(function(x){return !x.st.n});
+  if(u.length)return{t:u[0].t,why:'Not assessed yet. Try a few questions to find out where you stand.'};
+  return null}
+function radarSvg(SK){
+  var N=SK.length,C=130,R=100,pts=[],dots='',ax='',lab='';
+  function P(i,f){var a=(-90+360*i/N)*Math.PI/180;return[C+R*f*Math.cos(a),C+R*f*Math.sin(a)]}
+  var rings=[1/3,2/3,1].map(function(f){return '<polygon points="'+SK.map(function(_,i){return P(i,f).join(',')}).join(' ')+'" fill="none" stroke="var(--line)"/>'}).join('');
+  SK.forEach(function(x,i){var e=P(i,1);ax+='<line x1="'+C+'" y1="'+C+'" x2="'+e[0]+'" y2="'+e[1]+'" stroke="var(--line)"/>';
+    var l=P(i,1.16);lab+='<text x="'+l[0]+'" y="'+l[1]+'" font-size="10" fill="var(--muted)" text-anchor="middle" dominant-baseline="middle">'+(i+1)+'</text>';
+    var f=x.st.n?x.acc/100:0,q=P(i,f);pts.push(q.join(','));
+    dots+=x.st.n?'<circle cx="'+q[0]+'" cy="'+q[1]+'" r="3.5" fill="var(--accent)"/>':'<circle cx="'+q[0]+'" cy="'+q[1]+'" r="3" fill="#fff" stroke="var(--muted)"/>'});
+  return '<svg viewBox="0 0 260 260" width="100%" style="max-width:300px;display:block;margin:0 auto" role="img" aria-label="Listening skills radar">'+rings+ax+'<polygon points="'+pts.join(' ')+'" fill="var(--accent)" fill-opacity=".14" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>'+dots+lab+'</svg>'}
+function vDiag(){
+  var bp=paperById(BASE),b=bestScore(BASE),h=header(false);
+  var last=ST.exams.filter(function(e){return e.paper===BASE});
+  h+='<h2 class="ptitle">Diagnostic test</h2><div class="pcard" style="display:grid;gap:12px"><span class="pill" style="justify-self:start">'+(last.length?'Taken '+last.length+' time'+(last.length>1?'s':''):'Not taken yet')+'</span>';
+  h+='<p style="margin:0">The diagnostic test finds where you lose marks, so practice can focus on your weakest skills. It is not a grade.</p>';
+  if(bp)h+='<p class="muted small" style="margin:0">'+bp.texts.length+' recordings · '+bp.qs.length+' questions · about 30 minutes · each recording plays 2 times.</p>';
+  if(last.length)h+='<p style="margin:0">Best score: <b>'+b+'/'+bp.qs.length+'</b>. Retake it after a few weeks of practice to see how you have grown.</p>';
+  h+='<div class="row"><button class="btn" data-act="exam" data-p="'+BASE+'">'+(last.length?'Retake diagnostic':'Start diagnostic')+'</button>'+(last.length?'<button class="btn sm ghost" data-act="tab" data-v="progress">See my skill map</button>':'')+'</div></div>';
+  return h+nav('diag')}
 function vProgress(){
   if(needBase())return vWelcome();
   var h=header(false),sk=streak();
   var cal='';for(var k=34;k>=0;k--){var dd=dayOffset(k),on=!!ST.days[dd];cal+='<span title="'+dd+'" style="aspect-ratio:1;border-radius:6px;background:'+(on?'var(--good)':'var(--line)')+(k===0?';outline:2px solid var(--accent);outline-offset:1px':'')+'"></span>'}
   var n=Object.keys(ST.days).filter(function(d){return ST.days[d]}).length;
-  h+='<h2>My progress</h2><div class="card"><h3>'+sk+' day'+(sk===1?'':'s')+' in a row</h3><p class="muted small">'+n+' practice day'+(n===1?'':'s')+' in total. Last 5 weeks (today is outlined):</p><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">'+cal+'</div></div>';
-  h+='<div class="card"><h3>Accuracy by trap type</h3>'+TYPEKEYS.map(function(t){var st=typeStat(t),p=st.n?Math.round(st.r/st.n*100):0;return '<div style="display:grid;gap:4px"><div class="row" style="justify-content:space-between"><b>'+TYPES[t].label+'</b><span class="small muted">'+(st.n?p+'% ('+st.r+'/'+st.n+')':'not practised yet')+'</span></div><div class="bar"><i style="width:'+p+'%"></i></div></div>'}).join('')+'</div>';
+  var n=Object.keys(ST.days).filter(function(d){return ST.days[d]}).length;
+  var SK=TYPEKEYS.map(function(t){var st=typeStat(t),acc=st.n?Math.round(st.r/st.n*100):null,m=skillLevel(st);return{t:t,st:st,acc:acc,m:m}});
+  var tr=0,tn=0,assessed=0;SK.forEach(function(x){tr+=x.st.r;tn+=x.st.n;if(x.st.n)assessed++});
+  var overall=tn?Math.round(tr/tn*100):null;
+  var foc=focusSkill(SK);
+  h+='<h2 class="ptitle">Your learning progress</h2>';
+  h+='<div class="pstats"><div class="pst"><span>Overall accuracy</span><b>'+(overall===null?'—':overall+'%')+'</b></div><div class="pst"><span>Skills assessed</span><b>'+assessed+' / '+SK.length+'</b></div><div class="pst"><span>Practice days</span><b>'+n+'</b></div></div>';
+  h+='<div class="pmain"><div class="pcard"><h3>Listening Skills Map</h3>'+radarSvg(SK)+'<p class="muted small" style="text-align:center;margin:4px 0 0">Numbers match the skill list. Hollow dot = not assessed.</p></div>';
+  h+='<div class="pcard"><h3>Your '+SK.length+' listening skills</h3><div class="pskills">'+SK.map(function(x,i){return '<div class="psk '+x.m.cls+'"><small>'+(i+1)+'. '+esc(TYPES[x.t].label)+'</small><b>'+x.m.label+'</b><em>'+(x.st.n?'Accuracy '+x.acc+'% · '+x.st.r+'/'+x.st.n:'No attempts yet')+'</em></div>'}).join('')+'</div><p class="muted small" style="margin:10px 0 0">Mastery needs at least '+MIN_Q+' questions and 80% accuracy. One lucky answer is not mastery.</p></div></div>';
+  if(foc)h+='<div class="pfocus"><div><small>RECOMMENDED FOCUS</small><b>'+esc(TYPES[foc.t].label)+'</b><em>'+foc.why+'</em></div><button class="btn" data-act="trap" data-t="'+foc.t+'">Start practice</button></div>';
+  h+='<div class="card"><h3>'+sk+' day'+(sk===1?'':'s')+' in a row</h3><p class="muted small">'+n+' practice day'+(n===1?'':'s')+' in total. Last 5 weeks (today is outlined):</p><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:380px">'+cal+'</div></div>';
   var rows=PAPERS.filter(function(p){return bestScore(p.id)!==null});
   h+='<div class="card"><h3>Paper scores</h3>'+(rows.length?rows.map(function(p){var b=bestScore(p.id),lst=ST.exams.filter(function(e){return e.paper===p.id}).map(function(e){return e.score}).join(' → ');return '<div class="row" style="justify-content:space-between"><b>'+esc(p.short)+'</b><span class="small">'+lst+' <span class="pill good">best '+b+'/'+p.qs.length+'</span></span></div>'}).join(''):'<p class="muted">No full paper finished yet.</p>')+'</div>';
   h+='<div class="card"><h3>Share progress with your tutor</h3><p class="muted small">Press the button, then paste the text to your tutor. It only contains scores and question numbers.</p><textarea id="prog" readonly rows="6" style="width:100%;font:13px/1.4 monospace;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--bg);color:var(--ink)">'+esc(progText())+'</textarea><div class="row"><button class="btn sm" data-act="copyprog">Copy progress</button></div></div>';
@@ -637,7 +694,7 @@ function vReview(){
 
 function render(){
   var v=S.view,h='';
-  if(v==='home')h=vHome();else if(v==='papers')h=vPapers();else if(v==='skills')h=vSkills();else if(v==='mistakes')h=vMistakes();else if(v==='progress')h=vProgress();else if(v==='account')h=vAccount();else if(v==='teacher')h=vTeacher();else if(v==='kid')h=vKid();else if(v==='exam')h=vExam();else if(v==='result')h=vResultFull();else if(v==='trap')h=vTrap();else if(v==='review')h=vReview();else if(v==='intro')h=vIntro();else if(v==='adv')h=vAdv();else if(v==='dsum')h=vDsum();else if(v==='login')h=vLogin();
+  if(v==='home')h=vHome();else if(v==='papers')h=vPapers();else if(v==='skills')h=vSkills();else if(v==='mistakes')h=vMistakes();else if(v==='progress')h=vProgress();else if(v==='diag')h=vDiag();else if(v==='account')h=vAccount();else if(v==='teacher')h=vTeacher();else if(v==='kid')h=vKid();else if(v==='exam')h=vExam();else if(v==='result')h=vResultFull();else if(v==='trap')h=vTrap();else if(v==='review')h=vReview();else if(v==='intro')h=vIntro();else if(v==='adv')h=vAdv();else if(v==='dsum')h=vDsum();else if(v==='login')h=vLogin();
   document.body.classList.toggle('hasnav',/class="nav"/.test(h));
   app.innerHTML=h}
 function vIntro(){
