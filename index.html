@@ -274,6 +274,31 @@ function syncAttempt(id,ok,chosen,mode){var q=QBY[id];if(!USER||!q||!DBP[q.paper
   if(!ok)enqueue({t:'mistake',row:{user_id:USER.id,question_id:id,cleared:false,updated_at:new Date().toISOString()}})}
 function syncMistake(id,cleared){var q=QBY[id];if(!USER||!q||!DBP[q.paper])return;enqueue({t:'mistake',row:{user_id:USER.id,question_id:id,cleared:!!cleared,updated_at:new Date().toISOString()}})}
 function syncExam(pid,score){if(!USER||!DBP[pid])return;enqueue({t:'exam',row:{user_id:USER.id,paper_id:pid,score:score,taken_on:today()}})}
+/* ---------- two-step diagnosis (D1 heard / D2 meaning) ---------- */
+var DIAG={};
+async function loadDiag(){if(!SB||!USER)return;DIAG={};
+  try{var r=await SB.from('lc_drill_items').select('id,module,source_question_id,audio_ref,stem,opts,answer,why').in('module',['D1_heard','D2_meaning']).eq('status','approved');
+    if(!r.error)(r.data||[]).forEach(function(it){var d=DIAG[it.source_question_id]||(DIAG[it.source_question_id]={tags:{}});if(it.module==='D1_heard')d.d1=it;else d.d2=it});
+    var t=await SB.from('lc_option_tags').select('question_id,option_no,trap_tag,diagnosis');
+    if(!t.error)(t.data||[]).forEach(function(x){var d=DIAG[x.question_id]||(DIAG[x.question_id]={tags:{}});d.tags[x.option_no]=x});
+  }catch(e){}}
+function hasDiag(id){var d=DIAG[id];return !!(d&&d.d1)}
+function optText(o){return typeof o==='string'?o:(o&&(o.text||o.t))||String(o)}
+function syncDrill(it,chosen){var q=QBY[it.source_question_id];if(!USER||!q||!DBP[q.paper])return;enqueue({t:'drill',row:{user_id:USER.id,item_id:it.id,chosen:chosen,correct:chosen===it.answer}})}
+function syncDiag(id,g){var q=QBY[id];if(!USER||!q||!DBP[q.paper])return;
+  enqueue({t:'diag',row:{user_id:USER.id,question_id:id,chosen:g.chosen,heard_ok:g.heard,meaning_ok:g.meaning,cause:g.cause,self_cause:g.self}})}
+var CAUSE={hear:{t:'Hearing',d:'You did not catch the exact words.'},meaning:{t:'Meaning',d:'You heard the words, but did not get what they meant.'},option:{t:'Options',d:'You understood the clue, but an option trapped you.'},focus:{t:'Focus',d:'I lost focus or guessed.'}};
+var TRAPNAME={mentioned_irrelevant:'Mentioned, but not the answer',wrong_time:'Wrong time',wrong_speaker:'Wrong speaker',cause_effect:'Cause and effect mixed up',partly_correct:'Only partly correct',wrong_degree:'Too strong or too weak',past_vs_future:'Past vs future',actual_vs_should:'What happened vs what should happen',wrong_intention:'Wrong intention',unsupported:'Not said in the text',true_not_answer:'True, but does not answer the question'};
+function dItemHtml(it,sel,step,title){
+  var h='<div class="card"><h3>'+title+'</h3><p class="small muted" style="margin:0">'+(step==='d1'?'Listen to the clue line. Which sentence did you hear?':'Listen again. What does the speaker mean?')+'</p>'+
+   '<div class="row" style="gap:8px"><button class="btn" style="min-height:52px;font-size:18px" data-act="dplay" data-step="'+step+'" data-rate="0.7">🔊 Slow</button><button class="btn" style="min-height:52px;font-size:18px" data-act="dplay" data-step="'+step+'" data-rate="1">🔊 Normal</button></div>'+
+   '<p class="stem">'+esc(it.stem||'')+'</p><div class="opts">';
+  var o=it.opts||[];
+  for(var i=1;i<=o.length;i++){var c='opt';if(sel){if(i===it.answer)c+=' right';else if(sel===i)c+=' wrong'}
+    h+='<button class="'+c+'" data-act="dpick" data-step="'+step+'" data-n="'+i+'"'+(sel?' disabled':'')+'><span class="no">'+i+'</span><span>'+esc(optText(o[i-1]))+(sel&&i===it.answer?' ✓':(sel===i?' ✗':''))+'</span></button>'}
+  h+='</div>';
+  if(sel){var ok=sel===it.answer;h+='<div class="fb '+(ok?'good':'bad')+'"><h3>'+(ok?'Yes, that is right.':'Not this one. The answer is '+it.answer+'.')+'</h3>'+(it.why?'<p>'+esc(it.why)+'</p>':'')+'</div>'}
+  return h+'</div>'}
 function syncDay(){if(!USER)return;enqueue({t:'day',row:{user_id:USER.id,day:today()}})}
 function flush(){return new Promise(function(resolve){
   if(flushing||!SB||!USER||!QUEUE.length){resolve(true);return}
@@ -281,13 +306,15 @@ function flush(){return new Promise(function(resolve){
   (async function(){
     var okAll=true;
     try{
-      var types=['attempt','exam','day','mistake'];
+      var types=['attempt','exam','day','mistake','diag','drill'];
       for(var ti=0;ti<types.length;ti++){
         var t=types[ti],items=QUEUE.filter(function(x){return x.t===t}).slice(0,200);
         if(!items.length)continue;
         var rows=items.map(function(x){return x.row}),r;
         if(t==='attempt')r=await SB.from('attempts').insert(rows);
         else if(t==='exam')r=await SB.from('exam_results').insert(rows);
+        else if(t==='diag')r=await SB.from('lc_diagnosis_log').insert(rows);
+        else if(t==='drill')r=await SB.from('lc_drill_attempts').insert(rows);
         else if(t==='day')r=await SB.from('practice_days').upsert(rows,{onConflict:'user_id,day',ignoreDuplicates:true});
         else{var m={};rows.forEach(function(x){m[x.question_id]=x});r=await SB.from('mistake_book').upsert(Object.keys(m).map(function(k){return m[k]}),{onConflict:'user_id,question_id'})}
         if(r.error){
@@ -323,6 +350,7 @@ async function onLogin(user){
   app.innerHTML='<p class="muted">Loading your records…</p>';
   var ok=await flush();
   if(ok){try{await pullServer()}catch(e){LASTERR='load: '+errTxt(e);setSync('err')}}
+  loadDiag();
   try{var pr=await SB.from('profiles').select('avatar,role').eq('id',user.id).maybeSingle();if(pr.data){ROLE=pr.data.role||'child';if(pr.data.avatar)localStorage.setItem('al1.avatar.'+user.id,pr.data.avatar)}}catch(e){}
   TD=null;go(ROLE==='tutor'?'teacher':'home')}
 async function doLogout(){ROLE='child';TD=null;try{await SB.auth.signOut()}catch(e){}USER=null;QUEUE=[];ST={q:{},exams:[],rate:1,days:{}};KEY='al1.listening.v2.anon';go('login')}
@@ -716,6 +744,27 @@ function vReview(){
     h+=qHtml(q,R.sel,undefined,true);
     h+='<div class="row"><button class="btn" data-act="rcheck"'+(R.sel?'':' disabled')+'>Check answer</button><button class="btn quiet" data-act="rnext">'+(last?(S.daily?'Skip to focus practice':'Skip'):'Skip')+'</button></div>';
     return h}
+  if(st==='self'||st==='d1'||st==='d2'||st==='diag'){
+    var D=DIAG[q.id]||{tags:{}},G=R.dg;
+    if(st==='self'){
+      h+='<div class="fb bad"><h3>Not quite. Let us find out why.</h3><p>First, what do you think went wrong? Pick one. There is no wrong answer here.</p></div><div class="card"><div class="opts">';
+      ['hear','meaning','option','focus'].forEach(function(k,ix){h+='<button class="opt" data-act="dself" data-c="'+k+'"><span class="no">'+(ix+1)+'</span><span><b>'+CAUSE[k].t+'</b> · '+CAUSE[k].d+'</span></button>'});
+      return h+'</div></div>'}
+    if(st==='d1'){h+=dItemHtml(D.d1,G.d1sel,'d1','Check 1 of 2: What did you hear?');
+      if(G.d1sel)h+='<div class="row"><button class="btn" data-act="dnext">'+(G.d1sel===D.d1.answer&&D.d2?'Next: what does it mean?':'See the result')+'</button></div>';
+      return h}
+    if(st==='d2'){h+=dItemHtml(D.d2,G.d2sel,'d2','Check 2 of 2: What does it mean?');
+      if(G.d2sel)h+='<div class="row"><button class="btn" data-act="dnext">See the result</button></div>';
+      return h}
+    var c=G.cause,same=G.self===c;
+    h+='<div class="card"><h3>Result: '+CAUSE[c].t+'</h3><p>'+esc(CAUSE[c].d)+'</p><p class="small muted">You thought: <b>'+CAUSE[G.self].t+'</b>. '+(same?'You read yourself well.':'The checks point to something different. Remember this for next time.')+'</p>';
+    if(c==='hear')h+='<div class="tip"><b>What to do:</b> Train your ears on this line. Listen slowly, then fill in the missing words.</div>';
+    else if(c==='meaning')h+='<div class="tip"><b>What to do:</b> The words were fine, but the meaning slipped. Next time, after you hear the key line, say to yourself in simple words what the speaker means.</div>'+(D.d2&&D.d2.why?'<p>'+esc(D.d2.why)+'</p>':'');
+    else{h+='<div class="tip"><b>What to do:</b> You understood the clue. Check each option against what was said, and cross out the ones the text does not support.</div>';
+      var ul='';for(var i=1;i<=3;i++){if(i===q.ans)continue;var tg=D.tags[i];if(tg&&(tg.diagnosis||tg.trap_tag))ul+='<li><b>Option '+i+'</b>'+(tg.trap_tag?' · '+esc(TRAPNAME[tg.trap_tag]||tg.trap_tag):'')+(tg.diagnosis?': '+esc(tg.diagnosis):'')+'</li>'}
+      if(ul)h+='<p class="small"><b>Why the other options are wrong:</b></p><ul class="small">'+ul+'</ul>'}
+    h+='</div><div class="row">'+(c==='hear'?'<button class="btn" data-act="dclue">Practise this line</button>':'<button class="btn" data-act="rretry">Try the question again</button>')+'<button class="btn quiet" data-act="rshow">Show answer and explanation</button></div>';
+    return h}
   if(st==='clue'){
     var b=blanks(q);
     if(R.sel)h+='<div class="fb bad"><h3>Not quite.</h3><p>Listen again, then fill in the blanks. After that, try the question once more.</p></div>';
@@ -797,7 +846,20 @@ var onClick=function(e){
   if(a==='key'){var q3=QBY[el.dataset.q];playClip(keyUrl(q3.id,(parseFloat(el.dataset.rate)||1)<0.9),1);return}
   if(a==='whole'){var q4=QBY[el.dataset.q];playClip(textUrl(q4.paper,q4.t),1);return}
   if(a==='dict'){go('review',{rv:{list:[el.dataset.q],i:0,cur:el.dataset.q,stage:'clue',sel:null}});return}
-  if(a==='rcheck'){var Rq=QBY[S.rv.list[S.rv.i]];if(!S.rv.sel)return;var okr=S.rv.sel===Rq.ans;record(Rq.id,okr,S.rv.sel,'review');S.rv.stage=okr?'done':'clue';render();window.scrollTo(0,0);return}
+  if(a==='rcheck'){var Rq=QBY[S.rv.list[S.rv.i]];if(!S.rv.sel)return;var okr=S.rv.sel===Rq.ans;record(Rq.id,okr,S.rv.sel,'review');if(!okr&&hasDiag(Rq.id)){S.rv.dg={chosen:S.rv.sel,self:null,d1sel:null,d2sel:null,heard:null,meaning:null,cause:null,logged:false};S.rv.stage='self'}else S.rv.stage=okr?'done':'clue';render();window.scrollTo(0,0);return}
+  if(a==='dself'){S.rv.dg.self=el.dataset.c;S.rv.stage='d1';render();window.scrollTo(0,0);return}
+  if(a==='dplay'){var dq=QBY[S.rv.list[S.rv.i]],dit=DIAG[dq.id]&&DIAG[dq.id][el.dataset.step],slow=(parseFloat(el.dataset.rate)||1)<0.9;
+    var url=dit&&dit.audio_ref?'audio/'+dit.audio_ref:keyUrl(dq.id,slow);playClip(url,slow&&dit&&dit.audio_ref?0.75:1);return}
+  if(a==='dpick'){var G=S.rv.dg,dq2=QBY[S.rv.list[S.rv.i]],Dd=DIAG[dq2.id],n2=+el.dataset.n,stp=el.dataset.step;
+    if(stp==='d1'&&!G.d1sel){G.d1sel=n2;G.heard=n2===Dd.d1.answer;syncDrill(Dd.d1,n2)}
+    else if(stp==='d2'&&!G.d2sel){G.d2sel=n2;G.meaning=n2===Dd.d2.answer;syncDrill(Dd.d2,n2)}
+    stopSpeak();var sc4=window.scrollY;render();window.scrollTo(0,sc4);return}
+  if(a==='dnext'){var G2=S.rv.dg,dq3=QBY[S.rv.list[S.rv.i]],D3=DIAG[dq3.id];stopSpeak();
+    if(S.rv.stage==='d1'&&G2.heard&&D3.d2){S.rv.stage='d2'}
+    else{G2.cause=!G2.heard?'hear':(G2.meaning===false?'meaning':'option');S.rv.stage='diag';
+      if(!G2.logged){G2.logged=true;syncDiag(dq3.id,G2)}}
+    render();window.scrollTo(0,0);return}
+  if(a==='dclue'){S.rv.stage='clue';S.rv.sel=null;render();window.scrollTo(0,0);return}
   if(a==='rretry'){S.rv.stage='try';S.rv.sel=null;render();window.scrollTo(0,0);return}
   if(a==='rshow'){S.rv.stage='done';render();window.scrollTo(0,0);return}
   if(a==='review'){var l=wrongIds();return go('review',{rv:{list:l,i:0}})}
